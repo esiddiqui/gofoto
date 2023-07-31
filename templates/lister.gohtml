@@ -1,0 +1,26 @@
+{{ define "lister.tmpl" }}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{{.Title}}</title>
+        <link href="/static/gofoto.css" rel="stylesheet">
+    </head>
+    <body>
+        <div id='div0'>
+        {{ template "header.tmpl" . }}
+        <!-- div id='div2'> rooted at {{ .RootPath }} </div -->
+        <div id='div2b'> 
+            <a class="album-name" href="/browse/{{ .Parent }}"> -up- </a>
+            <a class="album-name" href="/view/{{ .Path }}"> $ Photos $ </a>
+            <br />
+            {{range .Items}}
+                <div>
+                   <a class="album-name" href="/browse/{{ $.Path }}/{{ . }}"> {{ . }}</a>
+                  {{else}} <div class="album-name"><strong>no sub directories</strong>
+                </div>
+            {{end}}
+        </div>
+    </body>
+</html>
+{{ end }}

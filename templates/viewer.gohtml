@@ -1,0 +1,76 @@
+{{ define "viewer.tmpl" }}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{{.Title}}</title>
+        <link href="/static/gofoto.css" rel="stylesheet">
+    </head>
+	<body>
+		<div id='div0'>
+			{{ template "header.tmpl" .}}
+			
+	
+			 <div id='div3'> 
+				<div id='div3_1'>
+					<div class="main-img">
+						<img src="{{.SrcAttr}}" />
+					</div>
+				</div>
+				<!-- <div id='div3_2'>	
+					<div id='div3_2_0'>
+						<p> NAVIGATE </P>
+						<a href="{{.HrefBack}}"> Previous </a> | <a href="{{.HrefParent}}"> Listing </a> | <a href="{{.HrefNext}}"> Next </a> |  <a href="{{.HrefRoot}}"> Root </a> 
+					</div>
+
+					<div id='div3_2_1'> 
+						<p>SCALE </p>
+						<a href="{{ .HrefSelf }}&s=0.1&r=0"/> 0.1 </a> | <a href="{{ .HrefSelf }}&s=0.2&r=0"/> 0.2 </a> | <a href="{{ .HrefSelf }}&s=0.32&r=0"/> Best </a> | <a href="{{ .HrefSelf }}&s=0.5&r=0"/> 0.5 </a> | <a href="{{ .HrefSelf }}&s=0.75&r=0"/> 0.75 </a> | <a href="{{ .HrefSelf }}&s=1&r=0"/> 1 </a>
+					</div>
+
+					<div id='div3_2_2'> 
+					<p>ROTATE  </p>
+					<a href="{{ .HrefSelf }}&s=0.{{ $.Scale }}&r=-90"/> -90&deg; </a> | <a href="{{ .HrefSelf }}&s={{ $.Scale }}&r=0"/> 0&deg; </a> | <a href="{{ .HrefSelf }}&s=0.{{ $.Scale }}&r=90"/> 90&deg; </a> | <a href="{{ .HrefSelf }}&s=0.{{ $.Scale }}&r=180"/> 180&deg; </a>
+					</div>
+
+					<div id='div3_2_3'> <p>{{ .Title }}</p></div>
+					<div id='div3_2_4'> Path: {{ .Path }}</div>
+					<div id='div3_2_7'> Parent: {{ .HrefParent }}</div>
+					<div id='div3_2_7'> Root: {{ .HrefRoot }}</div>
+					<div id='div3_2_5'> SrcAttr: {{ .SrcAttr }}</div>
+					<div id='div3_2_6'> Parent: {{ .Parent }}</div>
+					<div id='div3_2_7'> Self: {{ .HrefSelf }}</div>
+					<div id='div3_2_7'> Prev: {{ .HrefBack }}</div>
+					<div id='div3_2_7'> Next: {{ .HrefNext }}</div>
+					<div id='div3_2_6'> Scaling: {{ .Scale }}%</div>
+					<div id='div3_2_7'> Rotation: {{ .Rotation }}&deg;</div>
+				</div> -->
+	        </div>
+
+			<div id='div2'>
+			   <div id='div2_x'> NAVIGATE </div>
+			   
+			   <div id='div2_x'>
+				<a href="{{.HrefBack}}"> Previous </a> | <a href="{{.HrefParent}}"> Listing </a> | <a href="{{.HrefNext}}"> Next </a> |  <a href="{{.HrefRoot}}"> Root </a> 
+			   </div>
+			   
+			   <div id='div2_x'> SCALE ({{ .Scale }}%)  </div>
+			   <div id='div2_x'> 
+					<a href="{{ .HrefSelf }}&s=0.1&r=0"/> 0.1 </a> | <a href="{{ .HrefSelf }}&s=0.2&r=0"/> 0.2 </a> | <a href="{{ .HrefSelf }}&s=0.32&r=0"/> Best </a> | <a href="{{ .HrefSelf }}&s=0.5&r=0"/> 0.5 </a> | <a href="{{ .HrefSelf }}&s=0.75&r=0"/> 0.75 </a> | <a href="{{ .HrefSelf }}&s=1&r=0"/> 1 </a>
+			   </div>
+
+			   <div id='div2_x'>ROTATE ({{ .Rotation }}&deg;)</div>
+			   <div id='div2_x'> 
+				<a href="{{ .HrefSelf }}&s={{ $.Scale }}&r=-90"/> -90&deg; </a> | <a href="{{ .HrefSelf }}&s={{ $.Scale }}&r=0"/> 0&deg; </a> | <a href="{{ .HrefSelf }}&s={{ $.Scale }}&r=90"/> 90&deg; </a> | <a href="{{ .HrefSelf }}&s={{ $.Scale }}&r=180"/> 180&deg; </a>
+			   </div>
+
+			    <div id='div2_x'>DIM: {{ .Metadata.DimX  }} x {{ .Metadata.DimY }} </div>
+				<div id='div2_x'>SIZE: {{ .Metadata.SizeBytes  }} bytes </div> 
+				<div id='div2_x'>CAMERA: {{ .Metadata.Camera }} </div>
+			    <div id='div2_x'>TAKEN: {{ .Metadata.DateTaken }} </div>
+				<div id='div2_x'>LOCATION: {{ .Metadata.Location }} </div>
+			 </div>
+	</body>
+</html>
+
+{{end}}

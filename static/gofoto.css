@@ -1,0 +1,152 @@
+body {  
+    background: rgb(50,31,55);
+    background: radial-gradient(circle, rgba(50,31,55,1) 0%, rgba(10,0,2,1) 100%);
+    margin: 0px 0px;
+} 
+#div0 {  
+    background: rgba(255,255,255,0.0);
+    height: 100vh;
+    width: 100vw;
+
+    display: flex;
+    flex-flow: column wrap;
+
+    margin:0;
+    align-items: stretch;
+} 
+
+#div1 {
+    background: rgb(2,0,36);
+    background: linear-gradient(90deg, rgba(2,0,36,1) 38%, rgba(4,99,119,1) 100%);
+    color: purple;
+    
+    display: flex;
+    flex-grow: 0;
+    flex-flow: row;
+    
+    width: 100vw;
+    height: 50px;
+
+    text-justify: center;
+    text-align: left;
+    font-family: arial;
+    font-size: 15px;
+} 
+#div1_1 {
+    color: white;
+    font-family: fantasy;
+    font-size: 3em;
+    z-index: 10;
+}
+#div1_2 {
+    color: white;
+    font-family: fantasy;
+    margin: 20px;
+}
+#div2 {
+    background: cyan;
+    background: rgb(2,0,36);
+    background: linear-gradient(90deg, rgba(2,0,36,1) 38%, rgba(4,99,119,1) 100%);
+    
+    display: flex;
+    flex-direction: column;
+    flex-grow: 0;
+    flex-flow: row;
+    
+    width: 100vw;
+    height: 50px;
+
+    text-justify: center;
+    text-align: left;
+    font-family: arial;
+    font-size: 15px;
+
+    color: rgb(249, 249, 249);
+}
+#div2 a {
+    color: rgb(249, 249, 249); 
+}
+#div2_x {
+    padding-right: 20px;
+}
+
+#div2b {
+    font-family:monospace;
+    color: white;
+
+    display: flex; 
+    flex-flow: column;
+    overflow-x: hidden;
+    overflow-y: scroll;
+
+    flex-grow: 10;
+    padding:0%;
+    width: 100%;
+    height: 80vh;
+    text-align: center;
+}  
+#div3 {
+    font-family:monospace;
+    color: white;
+
+    display: flex; 
+    flex-flow: row;
+    overflow-x: hidden;
+    overflow-y: hidden;
+
+    flex-grow: 10;
+    width: 100%;
+    height: calc(100vh - 100px);
+    text-align: center;
+} 
+#div3_1 {  
+    flex-grow: 7;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    display: flex;
+    font-family: monospace;
+    background: black;
+}
+#div3_2 {  
+    flex-grow: 3;
+    background: white;
+    color: black;
+    overflow: scroll;
+    display: flex;
+    flex-flow: column wrap;
+    font-family: monospace;
+}
+#div3_2 a {
+   color: black; 
+}
+a {
+    font: courier;
+    color: white;
+}
+.album-name {
+    font-size: 2em;
+    font-family: fantasy;
+}
+.title {
+    font-size: 15px;
+}
+.main-img {
+    overflow-x: scroll;
+    overflow-y: scroll;
+    width: 100%; 
+    height: 100%
+}
+.div-container {
+    width: 600px;
+    border: 0px solid black;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+.div-inside {
+    width: 100px;
+    height: 50px;
+    border: 0px solid black;
+    display: inline-block;
+    margin: 20px;
+}
