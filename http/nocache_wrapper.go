@@ -1,11 +1,11 @@
-package handler
+package http
 
 import (
 	"net/http"
 	"time"
 )
 
-//wrapNoCache wraps 2 handlers into one & add no-cache headerse
+// wrapNoCache wraps 2 handlers into one & add no-cache headerse
 func GetNoCacheWrapper(h http.Handler) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
