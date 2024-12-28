@@ -37,26 +37,14 @@ func (w *Window) Draw() {
 	// load image
 	index := 0
 	files = listJpegFiles(w.Path)
-	log.Infof("%v files founds in path %v", len(files))
-
-	//path := fmt.Sprintf("/Users/esiddiqui/Local/pictures/%v", files[index])
-
-	// img, err := gofoto_image.Open(w.ViewPort.Path)
-	// if err != nil {
-	// 	log.Errorf("error opening image %v", w.ViewPort.Path)
-	// } else {
-
-	// 	x = float64(img.Bounds().Dx())
-	// 	y = float64(img.Bounds().Dy())
-
-	// 	fmt.Printf(" x = %v, y =%v\n", img.Bounds().Dx(), img.Bounds().Dy())
-	// }
+	log.Infof("%v files founds in path %v", len(files), w.Path)
 
 	// window configuration
 	cfg := opengl.WindowConfig{
-		Title:  w.Path,
-		Bounds: pixel.R(0, 0, w.X, w.Y),
-		VSync:  true,
+		Title:     w.Path,
+		Bounds:    pixel.R(0, 0, w.X, w.Y),
+		VSync:     true,
+		Resizable: true,
 	}
 
 	// create window
@@ -65,13 +53,19 @@ func (w *Window) Draw() {
 		panic(err)
 	}
 
+	var jumpOverCnt int
 	win.Clear(colornames.Red)
 	for !win.Closed() {
 
+		jumpOverCnt = 1
+		if win.Pressed(pixel.KeyLeftShift) || win.Pressed(pixel.KeyRightShift) {
+			jumpOverCnt = 10
+		}
+
 		// with mouse-right or keypad DOWN button, we go to the NEXT picture
 		if win.JustPressed(pixel.MouseButtonRight) || win.JustPressed(pixel.KeyDown) {
-			win.Clear(colornames.Whitesmoke)
-			index += 1
+			// win.Clear(colornames.Whitesmoke)
+			index += jumpOverCnt
 			if index >= len(files) {
 				index = 0
 			}
@@ -79,10 +73,10 @@ func (w *Window) Draw() {
 
 			// with mouse-left or keypad UP button, we go to the PREV picture
 		} else if win.JustPressed(pixel.MouseButtonLeft) || win.JustPressed(pixel.KeyUp) {
-			win.Clear(colornames.Whitesmoke)
+			// win.Clear(colornames.Whitesmoke)
 			index -= 1
 			if index < 0 {
-				index = len(files) - 1
+				index = len(files) - jumpOverCnt
 			}
 			angleOfRotation = 0 // angle of rotation resets for new pic
 
@@ -93,6 +87,17 @@ func (w *Window) Draw() {
 			forceRedraw = true
 
 			// keypad LEFT pressed
+		} else if win.JustPressed(pixel.KeyLeft) {
+			// rotate left
+			switch angleOfRotation {
+			case 0, 90, 180:
+				angleOfRotation -= 90
+			default: // 180
+				angleOfRotation = 180
+			}
+			forceRedraw = true
+			log.Infof("rotation anagle %v", angleOfRotation)
+			// key pad RIGHT pressed
 		} else if win.JustPressed(pixel.KeyLeft) {
 			// rotate left
 			switch angleOfRotation {
@@ -118,10 +123,12 @@ func (w *Window) Draw() {
 			win.SetClosed(true)
 		}
 
-		var xx, yy *float64
+		var xx, yy *float64 // nil, no scaling...
 		if scaleToFit {
-			xx = &w.X
-			yy = &w.Y
+			_xx := win.Bounds().Max.X
+			_yy := win.Bounds().Max.Y
+			xx = &_xx
+			yy = &_yy
 		}
 
 		pathToDraw := files[index]
