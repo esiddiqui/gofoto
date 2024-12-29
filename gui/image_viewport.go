@@ -17,22 +17,15 @@ import (
 type ImageViewPort struct {
 
 	// Path string
-	ForceRedraw     bool
-	ScaleToFit      bool
-	AngleOfRotation int
+	// ForceRedraw     bool
+	// ScaleToFit      bool
+	// AngleOfRotation int
 
 	// internal
 	// lastDrawnPath string
 }
 
 func (v *ImageViewPort) Draw(win *opengl.Window, state windowState) error {
-	// 	return v.loadPicInWindowScaledAndRotated(win,state)
-	// }
-
-	// func (v *ImageViewPort) loadPicInWindowScaledAndRotated(win *opengl.Window, state windowState) {
-	// TODO remove this
-	// path string, x, y *float64, rotationAngle *int
-
 	log.Infof("loading image to w.window")
 
 	// TODO
@@ -53,26 +46,6 @@ func (v *ImageViewPort) Draw(win *opengl.Window, state windowState) error {
 			log.Errorf("error rotating image %v by %v deg", filename, state.rotationAngle)
 		}
 	}
-
-	// scale to fit
-	// if x != nil || y != nil {
-	// 	log.Infof("scaling %v to fit w.window size %v, %v", path, *x, *y)
-
-	// 	max := img.Bounds().Max
-	// 	imgX := max.X
-	// 	imgY := max.Y
-
-	// 	scaleFactor := 1.0
-	// 	if imgX > imgY {
-	// 		scaleFactor = *x / float64(imgX)
-	// 	} else {
-	// 		scaleFactor = *y / float64(imgY)
-	// 	}
-	// 	img, err = gofoto_image.ResizeScale(img, float32(scaleFactor))
-	// 	if err != nil {
-	// 		log.Errorf("error scaling image %v by %v percent", path, scaleFactor)
-	// 	}
-	// }
 
 	// scaling needed?
 	scale_factor := state.scaleFactor

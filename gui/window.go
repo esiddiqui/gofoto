@@ -197,70 +197,29 @@ func (w *Window) CreateAndDraw() {
 			w.state.skip(skip)
 			w.state.rotateOrignal()
 
-			// w.win.Clear(colornames.Whitesmoke)
-			// w.index += jumpOverCnt
-			// if w.index >= len(files) {
-			// 	w.index = 0
-			// }
-			// angleOfRotation = 0 // angle of rotation resets for new pic
-
 			// with mouse-left or keypad UP button, we go to the PREV picture
 		} else if w._ref.JustPressed(pixel.MouseButtonLeft) || w._ref.JustPressed(pixel.KeyUp) {
 			w.state.skip(-1 * skip)
 			w.state.rotateOrignal()
-
-			// // w.win.Clear(colornames.Whitesmoke)
-			// w.index -= 1
-			// if w.index < 0 {
-			// 	w.index = len(files) - jumpOverCnt
-			// }
-			// angleOfRotation = 0 // angle of rotation resets for new pic
-
 			// with Space key pressed
 		} else if w._ref.JustPressed(pixel.KeySpace) {
 			log.Infof("Spacebar pressed, toggling scale to fit %v", !w.state.scaleToFit)
 			w.state.scaleToFit = !w.state.scaleToFit
-			// scaleToFit = !scaleToFit
-			// w.windowState.ScaleToFit
 			forceRedraw = true /* requires a redraw() */
 
 			// keypad LEFT pressed
 		} else if w._ref.JustPressed(pixel.KeyLeft) {
-			// rotate left
-			// switch angleOfRotation {
-			// case 0, 90, 180:
-			// 	angleOfRotation -= 90
-			// default: // 180
-			// 	angleOfRotation = 180
-			// }
+
 			w.state.rotateCounterClockwise()
 			forceRedraw = true
 			log.Infof("rotation anagle %v", w.state.rotationAngle)
 
 			// key pad RIGHT pressed
 		} else if w._ref.JustPressed(pixel.KeyRight) {
-			// // rotate right
-			// switch angleOfRotation {
-			// case 0, 90, 180:
-			// 	angleOfRotation -= 90
-			// default: // 180
-			// 	angleOfRotation = 180
-			// }
+
 			w.state.rotateClockwise()
 			forceRedraw = true
 			log.Infof("rotation anagle %v", w.state.rotationAngle)
-
-			// key pad RIGHT pressed
-			// } else if w.win.JustPressed(pixel.KeyRight) {
-			// 	// rotate right
-			// 	switch angleOfRotation {
-			// 	case -90, 0, 90:
-			// 		angleOfRotation += 90
-			// 	default: // -180
-			// 		angleOfRotation = -90
-			// 	}
-			// 	forceRedraw = true
-			// 	log.Infof("rotation anagle %v", angleOfRotation)
 
 			// Q pressed
 		} else if w._ref.JustPressed(pixel.KeyQ) {

@@ -22,14 +22,6 @@ func main() {
 	}
 
 	log.Infof("root is %v", rootPath)
-
-	// window := &gui.Window{
-	// 	wi:        1373,
-	// 	Y:        1063,
-	// 	ViewPort: nil,
-	// 	Path:     rootPath,
-	// }
-
 	window, err := gui.NewWindow(1373, 1063, rootPath)
 	if err != nil {
 		panic(err)
