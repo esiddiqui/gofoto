@@ -226,20 +226,21 @@ func (w *Window) CreateAndDraw() {
 			w.state.scrollOffsetY = 0
 			w.state.scrollOffsetY = 0
 			forceRedraw = true
-			// W pressed
-		} else if w._ref.JustPressed(pixel.KeyW) {
-			w.state.scrollOffsetY -= 10
+			// W pressed; viewport moves up
+		} else if w._ref.Pressed(pixel.KeyW) {
+			w.state.scrollOffsetY -= 15
 			forceRedraw = true
-			// A pressed
-		} else if w._ref.JustPressed(pixel.KeyA) {
-			w.state.scrollOffsetX -= 10
-			// S pressed
-		} else if w._ref.JustPressed(pixel.KeyS) {
-			w.state.scrollOffsetY += 10
+			// S pressed; viewport moves down
+		} else if w._ref.Pressed(pixel.KeyS) {
+			w.state.scrollOffsetY += 15
+			forceRedraw = true
+			// A pressed; viewport
+		} else if w._ref.Pressed(pixel.KeyA) {
+			w.state.scrollOffsetX += 15
 			forceRedraw = true
 			// D pressed
-		} else if w._ref.JustPressed(pixel.KeyD) {
-			w.state.scrollOffsetX += 10
+		} else if w._ref.Pressed(pixel.KeyD) {
+			w.state.scrollOffsetX -= 15
 			forceRedraw = true
 			// Esc key closes the w.windows
 		} else if w._ref.JustPressed(pixel.KeyEscape) {
