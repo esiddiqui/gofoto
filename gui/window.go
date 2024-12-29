@@ -1,214 +1,390 @@
 package gui
 
 import (
-	"fmt"
 	"image"
-	"image/color"
 
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"golang.org/x/image/colornames"
-	"golang.org/x/image/font/basicfont"
-
-	"github.com/gopxl/pixel/v2/ext/text"
 
 	gofoto_image "github.com/esiddiqui/gofoto/image"
 
 	log "github.com/sirupsen/logrus"
 )
 
-type Window struct {
-	X, Y     float64
-	ViewPort *ViewPort
-	Path     string
-	// TODO Check
-	ForceRedraw bool
+// NewWindow creates a new window at the supplied path
+func NewWindow(width, height float64, path string) (*Window, error) {
+
+	_cacheSize := 1
+
+	// load files @ path
+	_files := listJpegFiles(path)
+	log.Debug("%v files founds in path %v", len(_files), path)
+
+	// TODO
+	// look at cache size & load accordingly,
+	// current image is loaded inline, others are concurrently async after
+	// load iages to cache
+	var _img *image.Image
+	if len(_files) > 0 {
+		img, err := gofoto_image.Open(_files[0]) // load first
+		if err != nil {
+			log.Errorf("error opening image: %v\n", path)
+		}
+		_img = &img
+	}
+
+	state := &windowState{
+		path:      path,                 // wording director
+		files:     _files,               // if nil, then no files were loaded, sorry
+		current:   0,                    // starting index
+		cacheSize: _cacheSize,           // load 1 picture at a time, 0 is invalid
+		cache:     []*image.Image{_img}, // loaded image cache
+
+		scaleFactor:   1.0,   // no scaling
+		scaleToFit:    false, // do not scale to fit
+		scrollOffsetX: 0,
+		scrollOffsetY: 0,
+	}
+
+	return &Window{
+		width:    width,  // 1373,
+		height:   height, // 1063,
+		state:    state,  // state
+		viewPort: new(ImageViewPort),
+		_ref:     nil, // opengl windows refererence; will be created & saved later...
+	}, nil
+
 }
 
-func (w *Window) Draw() {
+type windowState struct {
+	path          string         // working directory
+	files         []string       // eligible files to be loaded in the directory
+	current       int            // currently pointed to file
+	cacheSize     int            // cache size, min 1 to hold the currently loaded picture
+	cache         []*image.Image // a cache of image.Image
+	rotationAngle int            // angle of rotation
+	scaleFactor   float64        // scale factor 1:100%
+	scaleToFit    bool           // should ignore scaleFactor, rather scale to fit
+	scrollOffsetX int
+	scrollOffsetY int
+}
 
-	var files []string
+// skip current index by `by`, where by can be +ve for forward skip
+// or -ve for backward skip. If the new current is less than 0, or more
+// than max (len(files)-1) then we do a circular move...
+func (s *windowState) skip(by int) {
+	len := len(s.files)
+	max := len - 1
 
-	var angleOfRotation int // 0 deg
-	scaleToFit := false
+	s.current += by
+	// cyclical move in case out of bounds...
+	if s.current < 0 {
+		s.current = len + by
+	} else if s.current > max {
+		s.current = s.current - len
+	}
+}
+
+func (s *windowState) rotateOrignal() {
+	s.rotationAngle = 0
+}
+
+func (s *windowState) rotateClockwise() {
+	// rotate right/clockwise
+	switch s.rotationAngle {
+	case -90, 0, 90:
+		s.rotationAngle += 90
+	default: // -180
+		s.rotationAngle = -90
+	}
+}
+
+func (s *windowState) rotateCounterClockwise() {
+	// rotate left/counter-clockwise
+	switch s.rotationAngle {
+	case 0, 90, 180:
+		s.rotationAngle -= 90
+	default: // 180
+		s.rotationAngle = 180
+	}
+}
+
+// effectiveScalefactor returns a scale_factor based on the window * image sizes when
+// scale_to_fit flag is SET. if NOT SET, then the statically stored scale_factor
+// is returned
+func (s *windowState) effectiveScalefactor(win *opengl.Window, img image.Image) float64 {
+
+	if !s.scaleToFit {
+		return s.scaleFactor
+	}
+
+	scaleFactor := 1.0
+
+	// can not calculate scale factor if
+	// either of the references is nil
+	if win == nil || img == nil {
+		return scaleFactor
+	}
+
+	windowWidth := win.Bounds().Max.X
+	windowHeight := win.Bounds().Max.Y
+
+	max := img.Bounds().Max
+	imgWidth := max.X
+	imgHeight := max.Y
+
+	if imgWidth > imgHeight {
+		scaleFactor = windowWidth / float64(imgWidth)
+	} else {
+		scaleFactor = windowHeight / float64(imgHeight)
+	}
+
+	return scaleFactor
+
+}
+
+type Window struct {
+	width    float64
+	height   float64
+	state    *windowState
+	viewPort ViewPort       // the viewport abstraction
+	_ref     *opengl.Window // internal pointer to opengl w.window
+}
+
+func (w *Window) CreateAndDraw() {
+
+	// var angleOfRotation int // 0 deg
+	// scaleToFit := false
 	forceRedraw := false
 	lastDrawnPath := ""
 
-	// load image
-	index := 0
-	files = listJpegFiles(w.Path)
-	log.Infof("%v files founds in path %v", len(files), w.Path)
+	// load eligible filename in the current directory & set initial pointer
+	// w.index := 0
+	// var files []string
+	// files = listJpegFiles(w.path)
+	// log.Infof("%v files founds in path %v", len(files), w.path)
 
-	// window configuration
+	// w.window configuration
 	cfg := opengl.WindowConfig{
-		Title:     w.Path,
-		Bounds:    pixel.R(0, 0, w.X, w.Y),
+		Title:     w.state.path,
+		Bounds:    pixel.R(0, 0, w.width, w.height),
 		VSync:     true,
 		Resizable: true,
 	}
 
-	// create window
-	win, err := opengl.NewWindow(cfg)
+	// create w.window
+	var err error
+	w._ref, err = opengl.NewWindow(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	var jumpOverCnt int
-	win.Clear(colornames.Red)
-	for !win.Closed() {
+	var skip int
+	w._ref.Clear(colornames.Red)
 
-		jumpOverCnt = 1
-		if win.Pressed(pixel.KeyLeftShift) || win.Pressed(pixel.KeyRightShift) {
-			jumpOverCnt = 10
+	// main w.window loop here
+	for !w._ref.Closed() {
+
+		skip = 1
+
+		if w._ref.Pressed(pixel.KeyLeftShift) || w._ref.Pressed(pixel.KeyRightShift) {
+			skip = 10
 		}
 
 		// with mouse-right or keypad DOWN button, we go to the NEXT picture
-		if win.JustPressed(pixel.MouseButtonRight) || win.JustPressed(pixel.KeyDown) {
-			// win.Clear(colornames.Whitesmoke)
-			index += jumpOverCnt
-			if index >= len(files) {
-				index = 0
-			}
-			angleOfRotation = 0 // angle of rotation resets for new pic
+		if w._ref.JustPressed(pixel.MouseButtonRight) || w._ref.JustPressed(pixel.KeyDown) {
+			w.state.skip(skip)
+			w.state.rotateOrignal()
+
+			// w.win.Clear(colornames.Whitesmoke)
+			// w.index += jumpOverCnt
+			// if w.index >= len(files) {
+			// 	w.index = 0
+			// }
+			// angleOfRotation = 0 // angle of rotation resets for new pic
 
 			// with mouse-left or keypad UP button, we go to the PREV picture
-		} else if win.JustPressed(pixel.MouseButtonLeft) || win.JustPressed(pixel.KeyUp) {
-			// win.Clear(colornames.Whitesmoke)
-			index -= 1
-			if index < 0 {
-				index = len(files) - jumpOverCnt
-			}
-			angleOfRotation = 0 // angle of rotation resets for new pic
+		} else if w._ref.JustPressed(pixel.MouseButtonLeft) || w._ref.JustPressed(pixel.KeyUp) {
+			w.state.skip(-1 * skip)
+			w.state.rotateOrignal()
+
+			// // w.win.Clear(colornames.Whitesmoke)
+			// w.index -= 1
+			// if w.index < 0 {
+			// 	w.index = len(files) - jumpOverCnt
+			// }
+			// angleOfRotation = 0 // angle of rotation resets for new pic
 
 			// with Space key pressed
-		} else if win.JustPressed(pixel.KeySpace) {
-			log.Infof("Spacebar pressed, toggling scale to fit %v", !scaleToFit)
-			scaleToFit = !scaleToFit
-			forceRedraw = true
+		} else if w._ref.JustPressed(pixel.KeySpace) {
+			log.Infof("Spacebar pressed, toggling scale to fit %v", !w.state.scaleToFit)
+			w.state.scaleToFit = !w.state.scaleToFit
+			// scaleToFit = !scaleToFit
+			// w.windowState.ScaleToFit
+			forceRedraw = true /* requires a redraw() */
 
 			// keypad LEFT pressed
-		} else if win.JustPressed(pixel.KeyLeft) {
+		} else if w._ref.JustPressed(pixel.KeyLeft) {
 			// rotate left
-			switch angleOfRotation {
-			case 0, 90, 180:
-				angleOfRotation -= 90
-			default: // 180
-				angleOfRotation = 180
-			}
+			// switch angleOfRotation {
+			// case 0, 90, 180:
+			// 	angleOfRotation -= 90
+			// default: // 180
+			// 	angleOfRotation = 180
+			// }
+			w.state.rotateCounterClockwise()
 			forceRedraw = true
-			log.Infof("rotation anagle %v", angleOfRotation)
+			log.Infof("rotation anagle %v", w.state.rotationAngle)
+
 			// key pad RIGHT pressed
-		} else if win.JustPressed(pixel.KeyLeft) {
-			// rotate left
-			switch angleOfRotation {
-			case 0, 90, 180:
-				angleOfRotation -= 90
-			default: // 180
-				angleOfRotation = 180
-			}
+		} else if w._ref.JustPressed(pixel.KeyRight) {
+			// // rotate right
+			// switch angleOfRotation {
+			// case 0, 90, 180:
+			// 	angleOfRotation -= 90
+			// default: // 180
+			// 	angleOfRotation = 180
+			// }
+			w.state.rotateClockwise()
 			forceRedraw = true
-			log.Infof("rotation anagle %v", angleOfRotation)
+			log.Infof("rotation anagle %v", w.state.rotationAngle)
+
 			// key pad RIGHT pressed
-		} else if win.JustPressed(pixel.KeyRight) {
-			// rotate right
-			switch angleOfRotation {
-			case -90, 0, 90:
-				angleOfRotation += 90
-			default: // -180
-				angleOfRotation = -90
-			}
+			// } else if w.win.JustPressed(pixel.KeyRight) {
+			// 	// rotate right
+			// 	switch angleOfRotation {
+			// 	case -90, 0, 90:
+			// 		angleOfRotation += 90
+			// 	default: // -180
+			// 		angleOfRotation = -90
+			// 	}
+			// 	forceRedraw = true
+			// 	log.Infof("rotation anagle %v", angleOfRotation)
+
+			// Q pressed
+		} else if w._ref.JustPressed(pixel.KeyQ) {
+			w.state.scrollOffsetY = 0
+			w.state.scrollOffsetY = 0
 			forceRedraw = true
-			log.Infof("rotation anagle %v", angleOfRotation)
-		} else if win.JustPressed(pixel.KeyEscape) {
-			win.SetClosed(true)
+			// W pressed
+		} else if w._ref.JustPressed(pixel.KeyW) {
+			w.state.scrollOffsetY -= 10
+			forceRedraw = true
+			// A pressed
+		} else if w._ref.JustPressed(pixel.KeyA) {
+			w.state.scrollOffsetX -= 10
+			// S pressed
+		} else if w._ref.JustPressed(pixel.KeyS) {
+			w.state.scrollOffsetY += 10
+			forceRedraw = true
+			// D pressed
+		} else if w._ref.JustPressed(pixel.KeyD) {
+			w.state.scrollOffsetX += 10
+			forceRedraw = true
+			// Esc key closes the w.windows
+		} else if w._ref.JustPressed(pixel.KeyEscape) {
+			w._ref.SetClosed(true)
 		}
 
-		var xx, yy *float64 // nil, no scaling...
-		if scaleToFit {
-			_xx := win.Bounds().Max.X
-			_yy := win.Bounds().Max.Y
-			xx = &_xx
-			yy = &_yy
-		}
+		// var xx, yy *float64 // nil, no scaling...
+		// if scaleToFit {
+		// 	_xx := w.win.Bounds().Max.X
+		// 	_yy := w.win.Bounds().Max.Y
+		// 	xx = &_xx
+		// 	yy = &_yy
+		// }
 
-		pathToDraw := files[index]
-		// draw image on window only if a new path is selected, or forceRedraw is `true`
+		// draw image on w.window only if a new path is selected, or forceRedraw is `true`
+		pathToDraw := w.state.files[w.state.current] // will be drawn if we call draw
 		if pathToDraw != lastDrawnPath || forceRedraw {
-			loadPicInWindowScaledAndRotated(win, files[index], xx, yy, &angleOfRotation)
-			lastDrawnPath = files[index] // this was drawn
-			// reset after the draw
+			w.viewPort.Draw(w._ref, *w.state)
+			lastDrawnPath = pathToDraw
 			forceRedraw = false // set force redraw false after draing successfully
+			// w.viewPort.loadPicInw.windowScaledAndRotated(w.win, files[w.index], xx, yy, &angleOfRotation)
+			// lastDrawnPath = files[w.index] // this was drawn
+			// reset after the draw
 		}
 
-		win.Update()
+		w._ref.Update()
 
 	}
 
-	log.Info("bye bye !! window was closed...")
+	log.Info("bye bye !! w.window was closed...")
 }
 
-type ViewPort struct {
-	image.Rectangle
+// processUserInput will see if a mouse or keyboard interaction
+// happened & return a
 
-	// Path string
-	ForceRedraw     bool
-	ScaleToFit      bool
-	AngleOfRotation int
+// func (w *w.window) processUserInput() (any, bool) {
 
-	// internal
-	lastDrawnPath string
-}
+// 	jumpOverCnt := 1
+// 	if w.win.Pressed(pixel.KeyLeftShift) || w.win.Pressed(pixel.KeyRightShift) {
+// 		jumpOverCnt = 10
+// 	}
 
-func (v *ViewPort) Draw() {}
+// 	// with mouse-right or keypad DOWN button, we go to the NEXT picture
+// 	if w.win.JustPressed(pixel.MouseButtonRight) || w.win.JustPressed(pixel.KeyDown) {
+// 		// w.win.Clear(colornames.Whitesmoke)
+// 		w.index += jumpOverCnt
+// 		if w.index >= len(files) {
+// 			w.index = 0
+// 		}
+// 		angleOfRotation = 0 // angle of rotation resets for new pic
 
-func loadPicInWindowScaledAndRotated(win *opengl.Window, path string, x, y *float64, rotationAngle *int) {
-	log.Infof("loading image to window")
+// 		// with mouse-left or keypad UP button, we go to the PREV picture
+// 	} else if w.win.JustPressed(pixel.MouseButtonLeft) || w.win.JustPressed(pixel.KeyUp) {
+// 		// w.win.Clear(colornames.Whitesmoke)
+// 		w.index -= 1
+// 		if w.index < 0 {
+// 			w.index = len(files) - jumpOverCnt
+// 		}
+// 		angleOfRotation = 0 // angle of rotation resets for new pic
 
-	// load image using gofoto
-	img, err := gofoto_image.Open(path)
-	if err != nil {
-		log.Errorf("error opening image: %v\n", path)
-	}
+// 		// with Space key pressed
+// 	} else if w.win.JustPressed(pixel.KeySpace) {
+// 		log.Infof("Spacebar pressed, toggling scale to fit %v", !scaleToFit)
+// 		scaleToFit = !scaleToFit
+// 		forceRedraw = true
 
-	if rotationAngle != nil {
-		var err error
-		log.Infof("rotation %v by %v deg", path, *rotationAngle)
-		img, err = gofoto_image.Rotate(img, *rotationAngle)
-		if err != nil {
-			log.Errorf("error rotating image %v by %v deg", path, *rotationAngle)
-		}
-	}
+// 		// keypad LEFT pressed
+// 	} else if w.win.JustPressed(pixel.KeyLeft) {
+// 		// rotate left
+// 		switch angleOfRotation {
+// 		case 0, 90, 180:
+// 			angleOfRotation -= 90
+// 		default: // 180
+// 			angleOfRotation = 180
+// 		}
+// 		forceRedraw = true
+// 		log.Infof("rotation anagle %v", angleOfRotation)
 
-	// scale to fit
-	if x != nil || y != nil {
-		log.Infof("scaling %v to fit window size %v, %v", path, *x, *y)
+// 		// key pad RIGHT pressed
+// 	} else if w.win.JustPressed(pixel.KeyLeft) {
+// 		// rotate left
+// 		switch angleOfRotation {
+// 		case 0, 90, 180:
+// 			angleOfRotation -= 90
+// 		default: // 180
+// 			angleOfRotation = 180
+// 		}
+// 		forceRedraw = true
+// 		log.Infof("rotation anagle %v", angleOfRotation)
 
-		max := img.Bounds().Max
-		imgX := max.X
-		imgY := max.Y
+// 		// key pad RIGHT pressed
+// 	} else if w.win.JustPressed(pixel.KeyRight) {
+// 		// rotate right
+// 		switch angleOfRotation {
+// 		case -90, 0, 90:
+// 			angleOfRotation += 90
+// 		default: // -180
+// 			angleOfRotation = -90
+// 		}
+// 		forceRedraw = true
+// 		log.Infof("rotation anagle %v", angleOfRotation)
 
-		scaleFactor := 1.0
-		if imgX > imgY {
-			scaleFactor = *x / float64(imgX)
-		} else {
-			scaleFactor = *y / float64(imgY)
-		}
-		img, err = gofoto_image.ResizeScale(img, float32(scaleFactor))
-		if err != nil {
-			log.Errorf("error scaling image %v by %v percent", path, scaleFactor)
-		}
-	}
-
-	win.Clear(color.Black) // black background ...
-
-	// load a pic & make sprite from the image
-	pic := pixel.PictureDataFromImage(img)
-	sprite := pixel.NewSprite(pic, pic.Bounds())
-	sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
-
-	// TODO very expensive operation; so need a review here...
-	basicAtlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
-	basicTxt := text.New(pixel.V(10, 10), basicAtlas)
-	fmt.Fprintln(basicTxt, path)
-	basicTxt.Draw(win, pixel.IM)
-}
+// 	// Esc key closes the w.windows
+// 	} else if w.win.JustPressed(pixel.KeyEscape) {
+// 		w.win.SetClosed(true)
+// 	}
+// }

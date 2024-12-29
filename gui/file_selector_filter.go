@@ -128,6 +128,7 @@ func (f *Filter) Allowed(path string) bool {
 	return rdr || rse || rss || rsp
 }
 
+// convenience method to load only JPEG files from the supplied directory path
 func listJpegFiles(path string) []string {
 
 	log.Debugf("loading files from %v\n", path)
