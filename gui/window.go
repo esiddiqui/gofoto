@@ -2,12 +2,11 @@ package gui
 
 import (
 	"image"
+	"reflect"
 
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"golang.org/x/image/colornames"
-
-	gofoto_image "github.com/esiddiqui/gofoto/image"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -15,34 +14,31 @@ import (
 // NewWindow creates a new window at the supplied path
 func NewWindow(width, height float64, path string) (*Window, error) {
 
-	_cacheSize := 1
+	// _cacheSize := 1
 
 	// load files @ path
 	_files := listJpegFiles(path)
-	log.Debug("%v files founds in path %v", len(_files), path)
+	log.Debugf("%v files founds in path %v", len(_files), path)
 
 	// TODO
 	// look at cache size & load accordingly,
 	// current image is loaded inline, others are concurrently async after
 	// load iages to cache
-	var _img *image.Image
-	if len(_files) > 0 {
-		img, err := gofoto_image.Open(_files[0]) // load first
-		if err != nil {
-			log.Errorf("error opening image: %v\n", path)
-		}
-		_img = &img
-	}
+	// var _img *image.Image
+	// if len(_files) > 0 {
+	// 	img, err := gofoto_image.Open(_files[0]) // load first
+	// 	if err != nil {
+	// 		log.Errorf("error opening image: %v\n", path)
+	// 	}
+	// 	_img = &img
+	// }
 
 	state := &windowState{
-		path:      path,                 // wording director
-		files:     _files,               // if nil, then no files were loaded, sorry
-		current:   0,                    // starting index
-		cacheSize: _cacheSize,           // load 1 picture at a time, 0 is invalid
-		cache:     []*image.Image{_img}, // loaded image cache
-
-		scaleFactor:   1.0,   // no scaling
-		scaleToFit:    false, // do not scale to fit
+		path:          path,   // wording director
+		files:         _files, // if nil, then no files were loaded, sorry
+		current:       0,      // starting index
+		scaleFactor:   1.0,    // no scaling
+		scaleToFit:    false,  // do not scale to fit
 		scrollOffsetX: 0,
 		scrollOffsetY: 0,
 	}
@@ -58,16 +54,18 @@ func NewWindow(width, height float64, path string) (*Window, error) {
 }
 
 type windowState struct {
-	path          string         // working directory
-	files         []string       // eligible files to be loaded in the directory
-	current       int            // currently pointed to file
-	cacheSize     int            // cache size, min 1 to hold the currently loaded picture
-	cache         []*image.Image // a cache of image.Image
-	rotationAngle int            // angle of rotation
-	scaleFactor   float64        // scale factor 1:100%
-	scaleToFit    bool           // should ignore scaleFactor, rather scale to fit
-	scrollOffsetX int
-	scrollOffsetY int
+	path          string   // working directory
+	files         []string // eligible files to be loaded in the directory
+	current       int      // currently pointed to file
+	rotationAngle int      // angle of rotation
+	scaleFactor   float64  // scale factor 1:100%
+	scaleToFit    bool     // should ignore scaleFactor, rather scale to fit
+	scrollOffsetX int      // X offset of viewport center from image center
+	scrollOffsetY int      // Y offset of viewport center from image center
+}
+
+func (st windowState) equals(other windowState) bool {
+	return reflect.DeepEqual(st, other)
 }
 
 // skip current index by `by`, where by can be +ve for forward skip
@@ -216,34 +214,57 @@ func (w *Window) CreateAndDraw() {
 
 			// key pad RIGHT pressed
 		} else if w._ref.JustPressed(pixel.KeyRight) {
-
 			w.state.rotateClockwise()
 			forceRedraw = true
 			log.Infof("rotation anagle %v", w.state.rotationAngle)
 
-			// Q pressed
-		} else if w._ref.JustPressed(pixel.KeyQ) {
-			w.state.scrollOffsetY = 0
+		} else if w._ref.JustPressed(pixel.KeyR) {
+			// R pressed; viewport scrolling reset
+			w.state.scrollOffsetX = 0
 			w.state.scrollOffsetY = 0
 			forceRedraw = true
-			// W pressed; viewport moves up
 		} else if w._ref.Pressed(pixel.KeyW) {
+			// W pressed; viewport moves up
+			w.state.scrollOffsetX += 0
 			w.state.scrollOffsetY -= 15
 			forceRedraw = true
-			// S pressed; viewport moves down
 		} else if w._ref.Pressed(pixel.KeyS) {
+			// S pressed; viewport moves down
+			w.state.scrollOffsetX += 0
 			w.state.scrollOffsetY += 15
 			forceRedraw = true
-			// A pressed; viewport
 		} else if w._ref.Pressed(pixel.KeyA) {
+			// A pressed; viewport moves left
 			w.state.scrollOffsetX += 15
+			w.state.scrollOffsetY += 0
 			forceRedraw = true
-			// D pressed
 		} else if w._ref.Pressed(pixel.KeyD) {
+			// D pressed; viewport moves right
 			w.state.scrollOffsetX -= 15
+			w.state.scrollOffsetY += 0
 			forceRedraw = true
-			// Esc key closes the w.windows
+		} else if w._ref.Pressed(pixel.KeyQ) {
+			// Q pressed; viewport moves up-left
+			w.state.scrollOffsetX += 15
+			w.state.scrollOffsetY -= 15
+			forceRedraw = true
+		} else if w._ref.Pressed(pixel.KeyE) {
+			// E pressed; viewport moves up-right
+			w.state.scrollOffsetX -= 15
+			w.state.scrollOffsetY -= 15
+			forceRedraw = true
+		} else if w._ref.Pressed(pixel.KeyZ) {
+			// Z pressed; viewport moves down-left
+			w.state.scrollOffsetX += 15
+			w.state.scrollOffsetY += 15
+			forceRedraw = true
+		} else if w._ref.Pressed(pixel.KeyX) {
+			// X pressed; viewport moves down-right
+			w.state.scrollOffsetX -= 15
+			w.state.scrollOffsetY += 15
+			forceRedraw = true
 		} else if w._ref.JustPressed(pixel.KeyEscape) {
+			// Esc key closes the w.windows
 			w._ref.SetClosed(true)
 		}
 
